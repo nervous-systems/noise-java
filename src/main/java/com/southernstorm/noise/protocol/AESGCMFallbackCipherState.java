@@ -34,7 +34,7 @@ import com.southernstorm.noise.crypto.RijndaelAES;
  * Fallback implementation of "AESGCM" on platforms where
  * the JCA/JCE does not have a suitable GCM or CTR provider.
  */
-class AESGCMFallbackCipherState implements CipherState {
+class AESGCMFallbackCipherState extends CipherStateBase implements CipherState {
 
 	private RijndaelAES aes;
 	private long n;
@@ -261,5 +261,10 @@ class AESGCMFallbackCipherState implements CipherState {
 	@Override
 	public void setNonce(long nonce) {
 		n = nonce;
+	}
+
+	@Override
+	public void getKey(byte[] out, int offset) {
+		System.arraycopy(hashKey, 0, out, offset, getKeyLength());
 	}
 }

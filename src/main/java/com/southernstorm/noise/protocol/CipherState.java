@@ -159,4 +159,10 @@ public interface CipherState extends Destroyable {
 	 * value goes backwards then security may be compromised.
 	 */
 	void setNonce(long nonce);
+
+	byte[] getKey();
+
+	void getKey(byte[] out);
+
+	void getKey(byte[] out, int offset);
 }

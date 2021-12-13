@@ -33,7 +33,7 @@ import com.southernstorm.noise.crypto.Poly1305;
 /**
  * Implements the ChaChaPoly cipher for Noise.
  */
-class ChaChaPolyCipherState implements CipherState {
+class ChaChaPolyCipherState extends CipherStateBase implements CipherState {
 
 	private Poly1305 poly;
 	private int[] input;
@@ -286,5 +286,10 @@ class ChaChaPolyCipherState implements CipherState {
 	@Override
 	public void setNonce(long nonce) {
 		n = nonce;
+	}
+
+	@Override
+	public void getKey(byte[] out, int offset) {
+		System.arraycopy(polyKey, 0, out, offset, getKeyLength());
 	}
 }

@@ -44,7 +44,7 @@ import com.southernstorm.noise.crypto.GHASH;
  * This class is used on platforms that don't have "AES/GCM/NoPadding",
  * but which do have the older "AES/CTR/NoPadding".
  */
-class AESGCMOnCtrCipherState implements CipherState {
+class AESGCMOnCtrCipherState extends CipherStateBase implements CipherState {
 
 	private Cipher cipher;
 	private SecretKeySpec keySpec;
@@ -331,5 +331,10 @@ class AESGCMOnCtrCipherState implements CipherState {
 	@Override
 	public void setNonce(long nonce) {
 		n = nonce;
+	}
+
+	@Override
+	public void getKey(byte[] out, int offset) {
+		System.arraycopy(hashKey, 0, out, offset, getKeyLength());
 	}
 }
