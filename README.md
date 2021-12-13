@@ -1,6 +1,9 @@
-
 Noise-Java Library
 ==================
+
+*This is a fork of Rhys Weatherley's [reference
+implementation](https://github.com/rweather/noise-java/) with some cosmetic
+enhancements.*
 
 Noise-Java is a plain Java implementation of the
 [Noise Protocol](http://noiseprotocol.org), intended as a
