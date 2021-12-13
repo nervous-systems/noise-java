@@ -141,7 +141,8 @@ public class HandshakeState implements Destroyable {
 			if ((flags & Pattern.FLAG_LOCAL_HYBRID) != 0 || (flags & Pattern.FLAG_REMOTE_HYBRID) != 0)
 				throw new IllegalArgumentException("Hybrid function not specified for hybrid pattern");
 		}
-
+		DHFunction dhf = DHFunction.valueOf(dh);
+		DHFunction hybridf = DHFunction.valueOf(dh);
 		// Initialize this object.  This will also create the cipher and hash objects.
 		try {
 			symmetric = new SymmetricState(protocolName, cipher, hash);
@@ -157,29 +158,29 @@ public class HandshakeState implements Destroyable {
 			// We cannot use hybrid algorithms like New Hope for ephemeral or static keys,
 			// Create the DH objects that we will need later.
 			if ((flags & Pattern.FLAG_LOCAL_STATIC) != 0)
-				localKeyPair = Noise.createDH(dh);
+				localKeyPair = Noise.createDH(dhf);
 			if ((flags & Pattern.FLAG_LOCAL_EPHEMERAL) != 0)
-				localEphemeral = Noise.createDH(dh);
+				localEphemeral = Noise.createDH(dhf);
 			if ((flags & Pattern.FLAG_LOCAL_HYBRID) != 0)
-				localHybrid = Noise.createDH(hybrid);
+				localHybrid = Noise.createDH(hybridf);
 			if ((flags & Pattern.FLAG_REMOTE_STATIC) != 0)
-				remotePublicKey = Noise.createDH(dh);
+				remotePublicKey = Noise.createDH(dhf);
 			if ((flags & Pattern.FLAG_REMOTE_EPHEMERAL) != 0)
-				remoteEphemeral = Noise.createDH(dh);
+				remoteEphemeral = Noise.createDH(dhf);
 			if ((flags & Pattern.FLAG_REMOTE_HYBRID) != 0)
-				remoteHybrid = Noise.createDH(hybrid);
+				remoteHybrid = Noise.createDH(hybridf);
 		} catch(NoSuchAlgorithmException e) {
 			throw new IllegalArgumentException(e);
 		}
 			// as the unbalanced nature of the algorithm only works with "f" and "ff" tokens.
 		if (localKeyPair instanceof DHStateHybrid)
-			throw new IllegalArgumentException("Cannot use '" + localKeyPair.getDHName() + "' for static keys");
+			throw new IllegalArgumentException("Cannot use '" + localKeyPair.getDHFunction() + "' for static keys");
 		if (localEphemeral instanceof DHStateHybrid)
-			throw new IllegalArgumentException("Cannot use '" + localEphemeral.getDHName() + "' for ephemeral keys");
+			throw new IllegalArgumentException("Cannot use '" + localEphemeral.getDHFunction() + "' for ephemeral keys");
 		if (remotePublicKey instanceof DHStateHybrid)
-			throw new IllegalArgumentException("Cannot use '" + remotePublicKey.getDHName() + "' for static keys");
+			throw new IllegalArgumentException("Cannot use '" + remotePublicKey.getDHFunction() + "' for static keys");
 		if (remoteEphemeral instanceof DHStateHybrid)
-			throw new IllegalArgumentException("Cannot use '" + remoteEphemeral.getDHName() + "' for ephemeral keys");
+			throw new IllegalArgumentException("Cannot use '" + remoteEphemeral.getDHFunction() + "' for ephemeral keys");
 	}
 
 	/**
@@ -388,7 +389,7 @@ public class HandshakeState implements Destroyable {
 		if (localEphemeral == null)
 			return null;
 		try {
-			fixedEphemeral = Noise.createDH(localEphemeral.getDHName());
+			fixedEphemeral = Noise.createDH(localEphemeral.getDHFunction());
 		} catch (NoSuchAlgorithmException e) {
 			// This shouldn't happen - the local ephemeral key would
 			// have already been created with the same name!
@@ -415,7 +416,7 @@ public class HandshakeState implements Destroyable {
 		if (localHybrid == null)
 			return null;
 		try {
-			fixedHybrid = Noise.createDH(localHybrid.getDHName());
+			fixedHybrid = Noise.createDH(localHybrid.getDHFunction());
 		} catch (NoSuchAlgorithmException e) {
 			// This shouldn't happen - the local hybrid key would
 			// have already been created with the same name!

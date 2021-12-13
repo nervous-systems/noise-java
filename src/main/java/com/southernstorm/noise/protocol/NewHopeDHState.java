@@ -87,8 +87,8 @@ final class NewHopeDHState implements DHStateHybrid {
 	}
 
 	@Override
-	public String getDHName() {
-		return "NewHope";
+	public DHFunction getDHFunction() {
+		return DHFunction.NEW_HOPE;
 	}
 
 	@Override

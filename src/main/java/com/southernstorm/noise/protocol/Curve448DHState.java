@@ -51,8 +51,8 @@ class Curve448DHState implements DHState {
 	}
 
 	@Override
-	public String getDHName() {
-		return "448";
+	public DHFunction getDHFunction() {
+		return DHFunction.CURVE_448;
 	}
 
 	@Override

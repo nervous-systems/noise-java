@@ -32,7 +32,7 @@ public interface DHState extends Destroyable {
 	 * 
 	 * @return The algorithm name.
 	 */
-	String getDHName();
+	DHFunction getDHFunction();
 
 	/**
 	 * Gets the length of public keys for this algorithm.

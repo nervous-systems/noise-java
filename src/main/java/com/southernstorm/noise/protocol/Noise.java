@@ -76,23 +76,25 @@ public final class Noise {
 	/**
 	 * Creates a Diffie-Hellman object from its Noise protocol name.
 	 * 
-	 * @param name The name of the DH algorithm; e.g. "25519", "448", etc.
-	 * 
-	 * @return The Diffie-Hellman object if the name is recognized.
+	 *
+	 * @param dh@return The Diffie-Hellman object if the name is recognized.
 	 * 
 	 * @throws NoSuchAlgorithmException The name is not recognized as a
 	 * valid Noise protocol name, or there is no cryptography provider
 	 * in the system that implements the algorithm.
 	 */
-	public static DHState createDH(String name) throws NoSuchAlgorithmException
+	public static DHState createDH(DHFunction dh) throws NoSuchAlgorithmException
 	{
-		if (name.equals("25519"))
-			return new Curve25519DHState();
-		if (name.equals("448"))
-			return new Curve448DHState();
-		if (name.equals("NewHope"))
-			return new NewHopeDHState();
-		throw new NoSuchAlgorithmException("Unknown Noise DH algorithm name: " + name);
+		switch(dh) {
+			case CURVE_25519:
+				return new Curve25519DHState();
+			case CURVE_448:
+				return new Curve448DHState();
+			case NEW_HOPE:
+				return new NewHopeDHState();
+			default:
+				throw new NoSuchAlgorithmException();
+		}
 	}
 
 	/**
