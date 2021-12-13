@@ -22,9 +22,7 @@
 package com.southernstorm.noise.tests;
 
 import com.southernstorm.json.JsonReader;
-import com.southernstorm.noise.protocol.CipherState;
-import com.southernstorm.noise.protocol.CipherStatePair;
-import com.southernstorm.noise.protocol.HandshakeState;
+import com.southernstorm.noise.protocol.*;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -158,15 +156,15 @@ public class VectorTests {
 			responder.setPreSharedKey(vec.resp_psk, 0, vec.resp_psk.length);
 
 		// Start both sides of the handshake.
-		assertEquals(HandshakeState.NO_ACTION, initiator.getAction());
-		assertEquals(HandshakeState.NO_ACTION, responder.getAction());
+		assertEquals(Action.NONE, initiator.getAction());
+		assertEquals(Action.NONE, responder.getAction());
 		initiator.start();
 		responder.start();
-		assertEquals(HandshakeState.WRITE_MESSAGE, initiator.getAction());
-		assertEquals(HandshakeState.READ_MESSAGE, responder.getAction());
+		assertEquals(Action.WRITE_MESSAGE, initiator.getAction());
+		assertEquals(Action.READ_MESSAGE, responder.getAction());
 
 		// Work through the messages one by one until both sides "split".
-		int role = HandshakeState.INITIATOR;
+		Role role = Role.INITIATOR;
 		int index = 0;
 		HandshakeState send, recv;
 		boolean isOneWay = (vec.pattern.length() == 1);
@@ -174,24 +172,24 @@ public class VectorTests {
 		byte[] message = new byte [8192];
 		byte[] plaintext = new byte [8192];
 		for (; index < vec.messages.length; ++index) {
-			if (initiator.getAction() == HandshakeState.SPLIT &&
-					responder.getAction() == HandshakeState.SPLIT) {
+			if (initiator.getAction() == Action.SPLIT &&
+					responder.getAction() == Action.SPLIT) {
 				break;
 			}
-			if (role == HandshakeState.INITIATOR) {
+			if (role == Role.INITIATOR) {
 				// Send on the initiator, receive on the responder.
 				send = initiator;
 				recv = responder;
 				if (!isOneWay)
-					role = HandshakeState.RESPONDER;
+					role = Role.RESPONDER;
 			} else {
 				// Send on the responder, receive on the initiator.
 				send = responder;
 				recv = initiator;
-				role = HandshakeState.INITIATOR;
+				role = Role.INITIATOR;
 			}
-			assertEquals(HandshakeState.WRITE_MESSAGE, send.getAction());
-			assertEquals(HandshakeState.READ_MESSAGE, recv.getAction());
+			assertEquals(Action.WRITE_MESSAGE, send.getAction());
+			assertEquals(Action.READ_MESSAGE, recv.getAction());
 			TestMessage msg = vec.messages[index];
 			int len = send.writeMessage(message, 0, msg.payload, 0, msg.payload.length);
 			assertEquals(msg.ciphertext.length, len);
@@ -228,11 +226,11 @@ public class VectorTests {
 		}
 		if (vec.fallback_expected) {
 			// The roles will have reversed during the handshake.
-			assertEquals(HandshakeState.RESPONDER, initiator.getRole());
-			assertEquals(HandshakeState.INITIATOR, responder.getRole());
+			assertEquals(Role.RESPONDER, initiator.getRole());
+			assertEquals(Role.INITIATOR, responder.getRole());
 		} else {
-			assertEquals(HandshakeState.INITIATOR, initiator.getRole());
-			assertEquals(HandshakeState.RESPONDER, responder.getRole());
+			assertEquals(Role.INITIATOR, initiator.getRole());
+			assertEquals(Role.RESPONDER, responder.getRole());
 		}
 
 		// Handshake finished.  Check the handshake hash values.
@@ -244,8 +242,8 @@ public class VectorTests {
 		// Split the two sides to get the transport ciphers.
 		CipherStatePair initPair;
 		CipherStatePair respPair;
-		assertEquals(HandshakeState.SPLIT, initiator.getAction());
-		assertEquals(HandshakeState.SPLIT, responder.getAction());
+		assertEquals(Action.SPLIT, initiator.getAction());
+		assertEquals(Action.SPLIT, responder.getAction());
 		if (vec.init_ssk != null)
 			initPair = initiator.split(vec.init_ssk, 0, vec.init_ssk.length);
 		else
@@ -254,24 +252,24 @@ public class VectorTests {
 			respPair = responder.split(vec.resp_ssk, 0, vec.resp_ssk.length);
 		else
 			respPair = responder.split();
-		assertEquals(HandshakeState.COMPLETE, initiator.getAction());
-		assertEquals(HandshakeState.COMPLETE, responder.getAction());
+		assertEquals(Action.COMPLETE, initiator.getAction());
+		assertEquals(Action.COMPLETE, responder.getAction());
 
 		// Now handle the data transport.
 		CipherState csend, crecv;
 		for (; index < vec.messages.length; ++index) {
 			TestMessage msg = vec.messages[index];
-			if (role == HandshakeState.INITIATOR) {
+			if (role == Role.INITIATOR) {
 				// Send on the initiator, receive on the responder.
 				csend = initPair.getSender();
 				crecv = respPair.getReceiver();
 				if (!isOneWay)
-					role = HandshakeState.RESPONDER;
+					role = Role.RESPONDER;
 			} else {
 				// Send on the responder, receive on the initiator.
 				csend = respPair.getSender();
 				crecv = initPair.getReceiver();
-				role = HandshakeState.INITIATOR;
+				role = Role.INITIATOR;
 			}
 			int len = csend.encryptWithAd(null, msg.payload, 0, message, 0, msg.payload.length);
 			assertEquals(msg.ciphertext.length, len);
@@ -390,10 +388,10 @@ public class VectorTests {
 		System.out.print(" ... ");
 		System.out.flush();
 		try {
-			HandshakeState initiator = new HandshakeState(protocolName, HandshakeState.INITIATOR);
-			HandshakeState responder = new HandshakeState(protocolName, HandshakeState.RESPONDER);
-			assertEquals(HandshakeState.INITIATOR, initiator.getRole());
-			assertEquals(HandshakeState.RESPONDER, responder.getRole());
+			HandshakeState initiator = new HandshakeState(protocolName, Role.INITIATOR);
+			HandshakeState responder = new HandshakeState(protocolName, Role.RESPONDER);
+			assertEquals(Role.INITIATOR, initiator.getRole());
+			assertEquals(Role.RESPONDER, responder.getRole());
 			assertEquals(protocolName, initiator.getProtocolName());
 			assertEquals(protocolName, responder.getProtocolName());
 			runTest(vec, initiator, responder);

@@ -43,60 +43,13 @@ public class HandshakeState implements Destroyable {
 	private DHState remoteHybrid;
 	private DHState fixedEphemeral;
 	private DHState fixedHybrid;
-	private int action;
+	private Action action;
 	private int requirements;
 	private short[] pattern;
 	private int patternIndex;
 	private byte[] preSharedKey;
 	private byte[] prologue;
 
-	/**
-	 * Enumerated value that indicates that the handshake object
-	 * is handling the initiator role.
-	 */
-	public static final int INITIATOR = 1;
-
-	/**
-	 * Enumerated value that indicates that the handshake object
-	 * is handling the responder role.
-	 */
-	public static final int RESPONDER = 2;
-
-	/**
-	 * No action is required of the application yet because the
-	 * handshake has not started.
-	 */
-	public static final int NO_ACTION = 0;
-	
-	/**
-	 * The HandshakeState expects the application to write the
-	 * next message payload for the handshake.
-	 */
-	public static final int WRITE_MESSAGE = 1;
-	
-	/**
-	 * The HandshakeState expects the application to read the
-	 * next message payload from the handshake.
-	 */
-	public static final int READ_MESSAGE = 2;
-	
-	/**
-	 * The handshake has failed due to some kind of error.
-	 */
-	public static final int FAILED = 3;
-	
-	/**
-	 * The handshake is over and the application is expected to call
-	 * split() and begin data session communications.
-	 */
-	public static final int SPLIT = 4;
-
-	/**
-	 * The handshake is complete and the data session ciphers
-	 * have been split() out successfully.
-	 */
-	public static final int COMPLETE = 5;
-	
 	/**
 	 * Local static keypair is required for the handshake.
 	 */
@@ -132,6 +85,18 @@ public class HandshakeState implements Destroyable {
 	 */
 	private static final int FALLBACK_POSSIBLE = 0x40;
 
+	public HandshakeState(String p, String hs, String dhf, String c, String h, Role r) {
+		this(p + "_" + hs + "_" + dhf + "_" + c + "_" + h, r);
+	}
+
+	public HandshakeState(Prefix p, Handshake hs, DHFunction dhf, Cipher c, Hash h, Role r) {
+		this(p.toString(), hs.toString(), dhf.toString(), c.toString(), h.toString(), r);
+	}
+
+	public HandshakeState(Handshake hs, DHFunction dhf, Cipher c, Hash h, Role r) {
+		this(Prefix.NOISE, hs, dhf, c, h, r);
+	}
+
 	/**
 	 * Creates a new Noise handshake.
 	 * 
@@ -140,12 +105,8 @@ public class HandshakeState implements Destroyable {
 	 * 
 	 * @throws IllegalArgumentException The protocolName is not
 	 * formatted correctly, or the role is not recognized.
-	 * 
-	 * @throws NoSuchAlgorithmException One of the cryptographic algorithms
-	 * that is specified in the protocolName is not supported.
 	 */
-	public HandshakeState(String protocolName, int role) throws NoSuchAlgorithmException
-	{
+	public HandshakeState(String protocolName, Role role) {
 		// Parse the protocol name into its components.
 		String[] components = protocolName.split("_");
 		if (components.length != 5)
@@ -165,7 +126,7 @@ public class HandshakeState implements Destroyable {
 		int extraReqs = 0;
 		if ((flags & Pattern.FLAG_REMOTE_REQUIRED) != 0 && patternId.length() > 1)
 			extraReqs |= FALLBACK_POSSIBLE;
-		if (role == RESPONDER) {
+		if (role == Role.RESPONDER) {
 			// Reverse the pattern flags so that the responder is "local".
 			flags = Pattern.reverseFlags(flags);
 		}
@@ -181,41 +142,44 @@ public class HandshakeState implements Destroyable {
 				throw new IllegalArgumentException("Hybrid function not specified for hybrid pattern");
 		}
 
-		// Check that the role is correctly specified.
-		if (role != INITIATOR && role != RESPONDER)
-			throw new IllegalArgumentException("Role must be initiator or responder");
-
 		// Initialize this object.  This will also create the cipher and hash objects.
-		symmetric = new SymmetricState(protocolName, cipher, hash);
-		isInitiator = (role == INITIATOR);
-		action = NO_ACTION;
-		requirements = extraReqs | computeRequirements(flags, prefix, role, false);
+		try {
+			symmetric = new SymmetricState(protocolName, cipher, hash);
+		} catch (NoSuchAlgorithmException e) {
+			throw new IllegalArgumentException(e);
+		}
+		isInitiator = (role == Role.INITIATOR);
+		action = Action.NONE;
+		requirements = extraReqs | computeRequirements(flags, prefix, false);
 		patternIndex = 1;
-		
-		// Create the DH objects that we will need later.
-		if ((flags & Pattern.FLAG_LOCAL_STATIC) != 0)
-			localKeyPair = Noise.createDH(dh);
-		if ((flags & Pattern.FLAG_LOCAL_EPHEMERAL) != 0)
-			localEphemeral = Noise.createDH(dh);
-		if ((flags & Pattern.FLAG_LOCAL_HYBRID) != 0)
-			localHybrid = Noise.createDH(hybrid);
-		if ((flags & Pattern.FLAG_REMOTE_STATIC) != 0)
-			remotePublicKey = Noise.createDH(dh);
-		if ((flags & Pattern.FLAG_REMOTE_EPHEMERAL) != 0)
-			remoteEphemeral = Noise.createDH(dh);
-		if ((flags & Pattern.FLAG_REMOTE_HYBRID) != 0)
-			remoteHybrid = Noise.createDH(hybrid);
-		
-		// We cannot use hybrid algorithms like New Hope for ephemeral or static keys,
-		// as the unbalanced nature of the algorithm only works with "f" and "ff" tokens.
+
+		try {
+			// We cannot use hybrid algorithms like New Hope for ephemeral or static keys,
+			// Create the DH objects that we will need later.
+			if ((flags & Pattern.FLAG_LOCAL_STATIC) != 0)
+				localKeyPair = Noise.createDH(dh);
+			if ((flags & Pattern.FLAG_LOCAL_EPHEMERAL) != 0)
+				localEphemeral = Noise.createDH(dh);
+			if ((flags & Pattern.FLAG_LOCAL_HYBRID) != 0)
+				localHybrid = Noise.createDH(hybrid);
+			if ((flags & Pattern.FLAG_REMOTE_STATIC) != 0)
+				remotePublicKey = Noise.createDH(dh);
+			if ((flags & Pattern.FLAG_REMOTE_EPHEMERAL) != 0)
+				remoteEphemeral = Noise.createDH(dh);
+			if ((flags & Pattern.FLAG_REMOTE_HYBRID) != 0)
+				remoteHybrid = Noise.createDH(hybrid);
+		} catch(NoSuchAlgorithmException e) {
+			throw new IllegalArgumentException(e);
+		}
+			// as the unbalanced nature of the algorithm only works with "f" and "ff" tokens.
 		if (localKeyPair instanceof DHStateHybrid)
-			throw new NoSuchAlgorithmException("Cannot use '" + localKeyPair.getDHName() + "' for static keys");
+			throw new IllegalArgumentException("Cannot use '" + localKeyPair.getDHName() + "' for static keys");
 		if (localEphemeral instanceof DHStateHybrid)
-			throw new NoSuchAlgorithmException("Cannot use '" + localEphemeral.getDHName() + "' for ephemeral keys");
+			throw new IllegalArgumentException("Cannot use '" + localEphemeral.getDHName() + "' for ephemeral keys");
 		if (remotePublicKey instanceof DHStateHybrid)
-			throw new NoSuchAlgorithmException("Cannot use '" + remotePublicKey.getDHName() + "' for static keys");
+			throw new IllegalArgumentException("Cannot use '" + remotePublicKey.getDHName() + "' for static keys");
 		if (remoteEphemeral instanceof DHStateHybrid)
-			throw new NoSuchAlgorithmException("Cannot use '" + remoteEphemeral.getDHName() + "' for ephemeral keys");
+			throw new IllegalArgumentException("Cannot use '" + remoteEphemeral.getDHName() + "' for ephemeral keys");
 	}
 
 	/**
@@ -233,9 +197,9 @@ public class HandshakeState implements Destroyable {
 	 * 
 	 * @return The role, HandshakeState.INITIATOR or HandshakeState.RESPONDER.
 	 */
-	public int getRole()
+	public Role getRole()
 	{
-		return isInitiator ? INITIATOR : RESPONDER;
+		return isInitiator ? Role.INITIATOR : Role.RESPONDER;
 	}
 
 	/**
@@ -289,7 +253,7 @@ public class HandshakeState implements Destroyable {
 			throw new UnsupportedOperationException
 				("Pre-shared keys are not supported for this handshake");
 		}
-		if (action != NO_ACTION) {
+		if (action != Action.NONE) {
 			throw new IllegalStateException
 				("Handshake has already started; cannot set pre-shared key");
 		}
@@ -312,7 +276,7 @@ public class HandshakeState implements Destroyable {
 	 */
 	public void setPrologue(byte[] prologue, int offset, int length)
 	{
-		if (action != NO_ACTION) {
+		if (action != Action.NONE) {
 			throw new IllegalStateException
 				("Handshake has already started; cannot set prologue");
 		}
@@ -485,7 +449,7 @@ public class HandshakeState implements Destroyable {
 	 */
 	public void start()
 	{
-		if (action != NO_ACTION) {
+		if (action != Action.NONE) {
 			throw new IllegalStateException
 				("Handshake has already started; cannot start again");
 		}
@@ -547,10 +511,7 @@ public class HandshakeState implements Destroyable {
 		}
 		
 		// The handshake has officially started - set the first action.
-		if (isInitiator)
-			action = WRITE_MESSAGE;
-		else
-			action = READ_MESSAGE;
+		action = isInitiator ? Action.WRITE_MESSAGE : Action.READ_MESSAGE;
 	}
 
 	/**
@@ -647,10 +608,10 @@ public class HandshakeState implements Destroyable {
 	    // responder to fallback after processing the first message
 	    // successfully; it decides to always fall back anyway.
 		if (isInitiator) {
-			if ((action != FAILED && action != READ_MESSAGE) || !localEphemeral.hasPublicKey())
+			if ((action != Action.FAILED && action != Action.READ_MESSAGE) || !localEphemeral.hasPublicKey())
 				throw new IllegalStateException("Initiator cannot fall back from this state");
 		} else {
-			if ((action != FAILED && action != WRITE_MESSAGE) || !remoteEphemeral.hasPublicKey())
+			if ((action != Action.FAILED && action != Action.WRITE_MESSAGE) || !remoteEphemeral.hasPublicKey())
 				throw new IllegalStateException("Responder cannot fall back from this state");
 		}
 		
@@ -687,7 +648,7 @@ public class HandshakeState implements Destroyable {
 				remotePublicKey.clearKey();
 			isInitiator = true;
 		}
-		action = NO_ACTION;
+		action = Action.NONE;
 		pattern = newPattern;
 		patternIndex = 1;
 		short flags = pattern[0];
@@ -695,7 +656,7 @@ public class HandshakeState implements Destroyable {
 			// Reverse the pattern flags so that the responder is "local".
 			flags = Pattern.reverseFlags(flags);
 		}
-		requirements = computeRequirements(flags, components[0], isInitiator ? INITIATOR : RESPONDER, true);
+		requirements = computeRequirements(flags, components[0], true);
 	}
 
 	/**
@@ -706,7 +667,7 @@ public class HandshakeState implements Destroyable {
 	 * HandshakeState.READ_MESSAGE, HandshakeState.SPLIT, or
 	 * HandshakeState.FAILED.
 	 */
-	public int getAction()
+	public Action getAction()
 	{
 		return action;
 	}
@@ -763,7 +724,7 @@ public class HandshakeState implements Destroyable {
 		boolean success = false;
 
 		// Validate the parameters and state.
-		if (action != WRITE_MESSAGE) {
+		if (action != Action.WRITE_MESSAGE) {
 			throw new IllegalStateException
 				("Handshake state does not allow writing messages");
 		}
@@ -780,14 +741,14 @@ public class HandshakeState implements Destroyable {
 			for (;;) {
 				if (patternIndex >= pattern.length) {
 					// The pattern has finished, so the next action is "split".
-					action = SPLIT;
+					action = Action.SPLIT;
 					break;
 				}
 				short token = pattern[patternIndex++];
 				if (token == Pattern.FLIP_DIR) {
 					// Change directions, so this message is complete and the
 					// next action is "read message".
-					action = READ_MESSAGE;
+					action = Action.READ_MESSAGE;
 					break;
 				}
 				int space = message.length - messagePosn;
@@ -924,7 +885,7 @@ public class HandshakeState implements Destroyable {
 			// already been written to the message buffer.
 			if (!success) {
 				Arrays.fill(message, messageOffset, message.length - messageOffset, (byte)0);
-				action = FAILED;
+				action = Action.FAILED;
 			}
 		}
 		return messagePosn - messageOffset;
@@ -961,7 +922,7 @@ public class HandshakeState implements Destroyable {
 		int messageEnd = messageOffset + messageLength;
 		
 		// Validate the parameters.
-		if (action != READ_MESSAGE) {
+		if (action != Action.READ_MESSAGE) {
 			throw new IllegalStateException
 				("Handshake state does not allow reading messages");
 		}
@@ -978,14 +939,14 @@ public class HandshakeState implements Destroyable {
 			for (;;) {
 				if (patternIndex >= pattern.length) {
 					// The pattern has finished, so the next action is "split".
-					action = SPLIT;
+					action = Action.SPLIT;
 					break;
 				}
 				short token = pattern[patternIndex++];
 				if (token == Pattern.FLIP_DIR) {
 					// Change directions, so this message is complete and the
 					// next action is "write message".
-					action = WRITE_MESSAGE;
+					action = Action.WRITE_MESSAGE;
 					break;
 				}
 				int space = messageEnd - messageOffset;
@@ -1123,7 +1084,7 @@ public class HandshakeState implements Destroyable {
 			// already been written to the payload buffer.
 			if (!success) {
 				Arrays.fill(payload, payloadOffset, payload.length - payloadOffset, (byte)0);
-				action = FAILED;
+				action = Action.FAILED;
 			}
 		}
 	}
@@ -1138,14 +1099,14 @@ public class HandshakeState implements Destroyable {
 	 */
 	public CipherStatePair split()
 	{
-		if (action != SPLIT) {
+		if (action != Action.SPLIT) {
 			throw new IllegalStateException
 				("Handshake has not finished");
 		}
 		CipherStatePair pair = symmetric.split();
 		if (!isInitiator)
 			pair.swap();
-		action = COMPLETE;
+		action = Action.COMPLETE;
 		return pair;
 	}
 
@@ -1165,7 +1126,7 @@ public class HandshakeState implements Destroyable {
 	 */
 	public CipherStatePair split(byte[] secondaryKey, int offset, int length)
 	{
-		if (action != SPLIT) {
+		if (action != Action.SPLIT) {
 			throw new IllegalStateException
 				("Handshake has not finished");
 		}
@@ -1175,7 +1136,7 @@ public class HandshakeState implements Destroyable {
 			// to make it easier on the application to know which is which.
 			pair.swap();
 		}
-		action = COMPLETE;
+		action = Action.COMPLETE;
 		return pair;
 	}
 	
@@ -1188,7 +1149,7 @@ public class HandshakeState implements Destroyable {
 	 */
 	public byte[] getHandshakeHash()
 	{
-		if (action != SPLIT && action != COMPLETE) {
+		if (action != Action.SPLIT && action != Action.COMPLETE) {
 			throw new IllegalStateException
 				("Handshake has not completed");
 		}
@@ -1233,7 +1194,7 @@ public class HandshakeState implements Destroyable {
 	 * 
 	 * @return The set of requirements for the handshake.
 	 */
-	private static int computeRequirements(short flags, String prefix, int role, boolean isFallback)
+	private static int computeRequirements(short flags, String prefix, boolean isFallback)
 	{
 		int requirements = 0;
 	    if ((flags & Pattern.FLAG_LOCAL_STATIC) != 0) {
