@@ -271,10 +271,10 @@ public class VectorTests {
 				crecv = initPair.getReceiver();
 				role = Role.INITIATOR;
 			}
-			int len = csend.encryptWithAd(null, msg.payload, 0, message, 0, msg.payload.length);
+			int len = csend.encrypt(null, msg.payload, 0, message, 0, msg.payload.length);
 			assertEquals(msg.ciphertext.length, len);
 			assertSubArrayEquals(Integer.toString(index) + ": ciphertext", msg.ciphertext, message);
-			int plen = crecv.decryptWithAd(null, message, 0, plaintext, 0, len);
+			int plen = crecv.decrypt(null, message, 0, plaintext, 0, len);
 			assertEquals(msg.payload.length, plen);
 			assertSubArrayEquals(Integer.toString(index) + ": payload", msg.payload, plaintext);
 		}

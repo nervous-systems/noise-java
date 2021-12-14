@@ -70,7 +70,7 @@ public class CipherStateTests {
 		try {
 			buffer = new byte [plaintextBytes.length];
 			Arrays.fill(buffer, (byte)0xAA);
-			assertEquals(plaintextBytes.length, cipher.encryptWithAd(adBytes, plaintextBytes, 0, buffer, 0, plaintextBytes.length));
+			assertEquals(plaintextBytes.length, cipher.encrypt(adBytes, plaintextBytes, 0, buffer, 0, plaintextBytes.length));
 			assertArrayEquals(plaintextBytes, buffer);
 		} catch (ShortBufferException e) {
 			fail("Buffer should have been big enough");
@@ -80,7 +80,7 @@ public class CipherStateTests {
 		buffer = new byte [ciphertextBytes.length];
 		Arrays.fill(buffer, (byte)0xAA);
 		try {
-			assertEquals(ciphertextBytes.length, cipher.decryptWithAd(adBytes, ciphertextBytes, 0, buffer, 0, ciphertextBytes.length));
+			assertEquals(ciphertextBytes.length, cipher.decrypt(adBytes, ciphertextBytes, 0, buffer, 0, ciphertextBytes.length));
 		} catch (BadPaddingException e) {
 			fail();
 		} catch (ShortBufferException e) {
@@ -96,7 +96,7 @@ public class CipherStateTests {
 		try {
 			buffer = new byte [ciphertextBytes.length];
 			Arrays.fill(buffer, (byte)0xAA);
-			assertEquals(ciphertextBytes.length, cipher.encryptWithAd(adBytes, plaintextBytes, 0, buffer, 0, plaintextBytes.length));
+			assertEquals(ciphertextBytes.length, cipher.encrypt(adBytes, plaintextBytes, 0, buffer, 0, plaintextBytes.length));
 			assertArrayEquals(ciphertextBytes, buffer);
 		} catch (ShortBufferException e) {
 			fail("Buffer should have been big enough");
@@ -105,7 +105,7 @@ public class CipherStateTests {
 	    // Try to decrypt.  The MAC check should fail because the internal
 	    // nonce was incremented and no longer matches the parameter.
 		try {
-			cipher.decryptWithAd(adBytes, ciphertextBytes, 0, buffer, 0, ciphertextBytes.length);
+			cipher.decrypt(adBytes, ciphertextBytes, 0, buffer, 0, ciphertextBytes.length);
 			fail();
 		} catch (BadPaddingException e) {
 			// Success!
@@ -119,9 +119,9 @@ public class CipherStateTests {
 		try {
 			buffer = new byte [ciphertextBytes.length];
 			Arrays.fill(buffer, (byte)0xAA);
-			cipher.encryptWithAd(adBytes, plaintextBytes, 0, buffer, 0, plaintextBytes.length);
+			cipher.encrypt(adBytes, plaintextBytes, 0, buffer, 0, plaintextBytes.length);
 			try {
-				cipher.encryptWithAd(adBytes, plaintextBytes, 0, buffer, 0, plaintextBytes.length);
+				cipher.encrypt(adBytes, plaintextBytes, 0, buffer, 0, plaintextBytes.length);
 				fail();
 			} catch (IllegalStateException e) {
 				// Success!
@@ -139,7 +139,7 @@ public class CipherStateTests {
 		try {
 			buffer = new byte [plaintextBytes.length];
 			Arrays.fill(buffer, (byte)0xAA);
-			assertEquals(plaintextBytes.length, cipher.decryptWithAd(adBytes, ciphertextBytes, 0, buffer, 0, ciphertextBytes.length));
+			assertEquals(plaintextBytes.length, cipher.decrypt(adBytes, ciphertextBytes, 0, buffer, 0, ciphertextBytes.length));
 			assertArrayEquals(plaintextBytes, buffer);
 		} catch (BadPaddingException e) {
 			fail();
@@ -154,13 +154,13 @@ public class CipherStateTests {
 			buffer = new byte [plaintextBytes.length];
 			Arrays.fill(buffer, (byte)0xAA);
 			try {
-				cipher.decryptWithAd(adBytes, ciphertextBytes, 0, buffer, 0, ciphertextBytes.length);
+				cipher.decrypt(adBytes, ciphertextBytes, 0, buffer, 0, ciphertextBytes.length);
 				fail();
 			} catch (BadPaddingException e) {
 				// Success!
 			}
 			try {
-				cipher.decryptWithAd(adBytes, ciphertextBytes, 0, buffer, 0, ciphertextBytes.length);
+				cipher.decrypt(adBytes, ciphertextBytes, 0, buffer, 0, ciphertextBytes.length);
 				fail();
 			} catch (IllegalStateException e) {
 				// Success!

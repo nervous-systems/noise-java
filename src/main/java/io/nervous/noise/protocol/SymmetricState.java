@@ -206,7 +206,7 @@ class SymmetricState implements Destroyable {
 	 */
 	public int encryptAndHash(byte[] plaintext, int plaintextOffset, byte[] ciphertext, int ciphertextOffset, int length) throws ShortBufferException
 	{
-		int ciphertextLength = cipher.encryptWithAd(h, plaintext, plaintextOffset, ciphertext, ciphertextOffset, length);
+		int ciphertextLength = cipher.encrypt(h, plaintext, plaintextOffset, ciphertext, ciphertextOffset, length);
 		mixHash(ciphertext, ciphertextOffset, ciphertextLength);
 		return ciphertextLength;
 	}
@@ -237,7 +237,7 @@ class SymmetricState implements Destroyable {
 	{
 		System.arraycopy(h, 0, prev_h, 0, h.length);
 		mixHash(ciphertext, ciphertextOffset, length);
-		return cipher.decryptWithAd(prev_h, ciphertext, ciphertextOffset, plaintext, plaintextOffset, length);
+		return cipher.decrypt(prev_h, ciphertext, ciphertextOffset, plaintext, plaintextOffset, length);
 	}
 
 	/**

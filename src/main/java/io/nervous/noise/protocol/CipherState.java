@@ -109,7 +109,7 @@ public interface CipherState extends Destroyable {
 	 * There must be enough space in the ciphertext buffer to accomodate
 	 * length + getMACLength() bytes of data starting at ciphertextOffset.
 	 */
-	int encryptWithAd(byte[] ad, byte[] plaintext, int plaintextOffset, byte[] ciphertext, int ciphertextOffset, int length) throws ShortBufferException;
+	int encrypt(byte[] ad, byte[] plaintext, int plaintextOffset, byte[] ciphertext, int ciphertextOffset, int length) throws ShortBufferException;
 
 	/**
 	 * Decrypts a ciphertext buffer using the cipher and a block of associated data.
@@ -138,7 +138,7 @@ public interface CipherState extends Destroyable {
 	 * decryption.  In that case, ciphertextOffset must be identical to
 	 * plaintextOffset.
 	 */
-	int decryptWithAd(byte[] ad, byte[] ciphertext, int ciphertextOffset, byte[] plaintext, int plaintextOffset, int length) throws ShortBufferException, BadPaddingException;
+	int decrypt(byte[] ad, byte[] ciphertext, int ciphertextOffset, byte[] plaintext, int plaintextOffset, int length) throws ShortBufferException, BadPaddingException;
 
 	/**
 	 * Creates a new instance of this cipher and initializes it with a key.

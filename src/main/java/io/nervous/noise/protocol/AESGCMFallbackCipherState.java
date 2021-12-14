@@ -181,7 +181,7 @@ class AESGCMFallbackCipherState extends CipherStateBase implements CipherState {
 	}
 
 	@Override
-	public int encryptWithAd(byte[] ad, byte[] plaintext, int plaintextOffset,
+	public int encrypt(byte[] ad, byte[] plaintext, int plaintextOffset,
 			byte[] ciphertext, int ciphertextOffset, int length)
 			throws ShortBufferException {
 		int space;
@@ -211,7 +211,7 @@ class AESGCMFallbackCipherState extends CipherStateBase implements CipherState {
 	}
 
 	@Override
-	public int decryptWithAd(byte[] ad, byte[] ciphertext,
+	public int decrypt(byte[] ad, byte[] ciphertext,
 			int ciphertextOffset, byte[] plaintext, int plaintextOffset,
 			int length) throws ShortBufferException, BadPaddingException {
 		int space;

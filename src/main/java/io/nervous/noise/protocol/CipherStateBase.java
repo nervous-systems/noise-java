@@ -1,5 +1,7 @@
 package io.nervous.noise.protocol;
 
+import javax.crypto.ShortBufferException;
+
 public abstract class CipherStateBase implements CipherState {
     public void getKey(byte[] out) {
         getKey(out, 0);
